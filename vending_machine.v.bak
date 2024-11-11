@@ -1,0 +1,70 @@
+module vending_machine (
+    input wire clk,         // Clock signal
+    input wire reset,       // Reset signal
+    input wire coin_0_5,    // 0.5 yuan coin input
+    input wire coin_1,      // 1 yuan coin input
+    output reg beverage,    // Beverage output
+    output reg [1:0] change // Change output (00 = 0 yuan, 01 = 0.5 yuan, 10 = 1 yuan)
+);
+
+    // State Encoding
+    typedef enum reg [1:0] {
+        S0 = 2'b00, // Initial state, 0 yuan
+        S1 = 2'b01, // 0.5 yuan
+        S2 = 2'b10, // 1 yuan
+        S3 = 2'b11  // 1.5 yuan
+    } state_t;
+
+    state_t state, next_state;
+
+    // State Transition
+    always @(posedge clk or posedge reset) begin
+        if (reset)
+            state <= S0;
+        else
+            state <= next_state;
+    end
+
+    // Next State Logic
+    always @(*) begin
+        next_state = state; // Default
+        beverage = 0;
+        change = 2'b00;
+
+        case (state)
+            S0: begin
+                if (coin_0_5)
+                    next_state = S1;
+                else if (coin_1)
+                    next_state = S2;
+            end
+            S1: begin
+                if (coin_0_5)
+                    next_state = S2;
+                else if (coin_1)
+                    next_state = S3;
+            end
+            S2: begin
+                if (coin_0_5)
+                    next_state = S3;
+                else if (coin_1) begin
+                    beverage = 1;
+                    next_state = S0;
+                end
+            end
+            S3: begin
+                if (coin_0_5) begin
+                    beverage = 1;
+                    change = 2'b01;
+                    next_state = S0;
+                end
+                else if (coin_1) begin
+                    beverage = 1;
+                    change = 2'b10;
+                    next_state = S0;
+                end
+            end
+        endcase
+    end
+
+endmodule
